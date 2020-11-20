@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"github.com/eden-framework/context"
+	"github.com/profzone/envconfig"
 	"github.com/robotic-framework/reverse-proxy/common"
 	"io"
 	"net"
@@ -14,11 +15,12 @@ import (
 
 type Worker struct {
 	RemoteAddr    string
-	RetryInterval time.Duration
+	RetryInterval envconfig.Duration
 	RetryMaxTime  int
 
 	sequence uint32
 	r        *Router
+	ctx      *context.WaitStopContext
 }
 
 func (w *Worker) Init() {
@@ -31,11 +33,15 @@ func (w *Worker) setDefaults() {
 		w.RetryMaxTime = 5
 	}
 	if w.RetryInterval == 0 {
-		w.RetryInterval = time.Second
+		w.RetryInterval = envconfig.Duration(time.Second)
 	}
 }
 
 func (w *Worker) Start(ctx *context.WaitStopContext) {
+	if ctx == nil {
+		ctx = context.NewWaitStopContext()
+		w.ctx = ctx
+	}
 	ctx.Add(1)
 	defer ctx.Finish()
 
@@ -50,7 +56,14 @@ func (w *Worker) Start(ctx *context.WaitStopContext) {
 	err = w.handshake(writer)
 
 	<-ctx.Done()
+	w.r.Close()
 	_ = conn.Close()
+}
+
+func (w *Worker) Stop() {
+	if w.ctx != nil {
+		w.ctx.Cancel()
+	}
 }
 
 func (w *Worker) writePacket(writer io.Writer, p *common.Packet) error {

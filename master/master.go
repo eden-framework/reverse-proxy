@@ -18,6 +18,8 @@ type Master struct {
 
 	sequence uint32
 	r        *Router
+	listener net.Listener
+	ctx      *context.WaitStopContext
 }
 
 func (m *Master) Init() {
@@ -30,8 +32,17 @@ func (m *Master) setDefaults() {
 }
 
 func (m *Master) Start(ctx *context.WaitStopContext) {
+	if ctx == nil {
+		ctx = context.NewWaitStopContext()
+		m.ctx = ctx
+	}
+
+	ctx.Add(1)
+	defer ctx.Finish()
+
 	// 监听worker的连接请求
-	listener, err := net.Listen("tcp4", m.ListenAddr)
+	var err error
+	m.listener, err = net.Listen("tcp4", m.ListenAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -40,22 +51,24 @@ func (m *Master) Start(ctx *context.WaitStopContext) {
 	defer logrus.Info("master server stopped")
 
 	go func() {
-		ctx.Add(1)
-
-		<-ctx.Done()
-		_ = listener.Close()
-		m.r.Close()
-
-		ctx.Finish()
+		for {
+			conn, err := m.listener.Accept()
+			if err != nil {
+				logrus.Warningf("master accept err: %v", err)
+				break
+			}
+			go m.handleWorkerConnection(ctx, conn)
+		}
 	}()
 
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			logrus.Warningf("master accept err: %v", err)
-			break
-		}
-		go m.handleWorkerConnection(ctx, conn)
+	<-ctx.Done()
+	_ = m.listener.Close()
+	m.r.Close()
+}
+
+func (m *Master) Stop() {
+	if m.ctx != nil {
+		m.ctx.Cancel()
 	}
 }
 

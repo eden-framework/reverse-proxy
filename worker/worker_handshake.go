@@ -17,7 +17,7 @@ func (w *Worker) handshake(writer *bufio.Writer) error {
 		err = writer.Flush()
 		if err != nil {
 			logrus.Warningf("send packet err: %v", err)
-			time.Sleep(w.RetryInterval)
+			time.Sleep(time.Duration(w.RetryInterval))
 		} else {
 			logrus.Debugf("handshake sent")
 			break

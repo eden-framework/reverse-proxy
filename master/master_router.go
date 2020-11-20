@@ -102,8 +102,12 @@ func (r *Route) Start(ctx *context.WaitStopContext) {
 }
 
 func (r *Route) Close() {
-	_ = r.targetConn.Close()
-	_ = r.sourceConn.Close()
+	if r.targetConn != nil {
+		_ = r.targetConn.Close()
+	}
+	if r.sourceConn != nil {
+		_ = r.sourceConn.Close()
+	}
 }
 
 type Router struct {

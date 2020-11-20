@@ -13,6 +13,8 @@ import (
 type Route struct {
 	RemotePort int
 	Handler    Handler
+
+	conn net.Conn
 }
 
 func (r *Route) UnmarshalBinary(data []byte) error {
@@ -27,6 +29,7 @@ func (r Route) MarshalBinary() (data []byte, err error) {
 }
 
 func (r *Route) Start(ctx *context.WaitStopContext, conn net.Conn) {
+	r.conn = conn
 	scanner := bufio.NewScanner(conn)
 	scanner.Split(r.Handler.SplitFunc)
 	for scanner.Scan() {
@@ -42,6 +45,12 @@ func (r *Route) Start(ctx *context.WaitStopContext, conn net.Conn) {
 	}
 }
 
+func (r *Route) Stop() {
+	if r.conn != nil {
+		_ = r.conn.Close()
+	}
+}
+
 type Router struct {
 	Routes map[int]Route
 }
@@ -49,6 +58,12 @@ type Router struct {
 func NewRouter() *Router {
 	return &Router{
 		Routes: make(map[int]Route),
+	}
+}
+
+func (r *Router) Close() {
+	for _, route := range r.Routes {
+		route.Stop()
 	}
 }
 
