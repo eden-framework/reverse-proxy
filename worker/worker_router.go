@@ -11,44 +11,57 @@ import (
 )
 
 type Route struct {
-	RemotePort int
-	Handler    Handler
+	remotePort int
+	handler    Handler
 
 	conn net.Conn
 }
 
 func (r *Route) UnmarshalBinary(data []byte) error {
-	r.RemotePort = int(binary.BigEndian.Uint32(data))
+	r.remotePort = int(binary.BigEndian.Uint32(data))
 	return nil
 }
 
 func (r Route) MarshalBinary() (data []byte, err error) {
 	data = make([]byte, 4)
-	binary.BigEndian.PutUint32(data, uint32(r.RemotePort))
+	binary.BigEndian.PutUint32(data, uint32(r.remotePort))
 	return
 }
 
-func (r *Route) Start(ctx *context.WaitStopContext, conn net.Conn) {
+func (r *Route) start(ctx *context.WaitStopContext, conn net.Conn) {
 	r.conn = conn
 	scanner := bufio.NewScanner(conn)
-	scanner.Split(r.Handler.SplitFunc)
+	scanner.Split(bufio.SplitFunc(r.handler.UnpackFunc))
 	for scanner.Scan() {
-		resp, err := r.Handler.HandleFunc(scanner.Bytes())
+		resp, err := r.handler.HandleFunc(scanner.Bytes())
 		if err != nil {
-			logrus.Errorf("route %d handle err: %v", r.RemotePort, err)
+			logrus.Errorf("route %d handle err: %v", r.remotePort, err)
 			continue
 		}
-		_, err = conn.Write(resp)
-		if err != nil {
-			logrus.Errorf("route %d write resp err: %v", r.RemotePort, err)
+
+		if resp != nil && len(resp) > 0 {
+			resp, err = r.handler.PackFunc(resp)
+			if err != nil {
+				logrus.Errorf("route %d pack resp err: %v", r.remotePort, err)
+				continue
+			}
+			err = r.Send(resp)
+			if err != nil {
+				logrus.Errorf("route %d write resp err: %v", r.remotePort, err)
+			}
 		}
 	}
 }
 
-func (r *Route) Stop() {
+func (r *Route) stop() {
 	if r.conn != nil {
 		_ = r.conn.Close()
 	}
+}
+
+func (r *Route) Send(payload []byte) error {
+	_, err := r.conn.Write(payload)
+	return err
 }
 
 type Router struct {
@@ -63,7 +76,7 @@ func NewRouter() *Router {
 
 func (r *Router) Close() {
 	for _, route := range r.Routes {
-		route.Stop()
+		route.stop()
 	}
 }
 
@@ -93,7 +106,7 @@ func (r *Router) UnmarshalBinary(data []byte) error {
 			return err
 		}
 
-		r.Routes[route.RemotePort] = route
+		r.Routes[route.remotePort] = route
 	}
 	return nil
 }
@@ -122,10 +135,18 @@ func (r Router) MarshalBinary() (data []byte, err error) {
 	return
 }
 
-func (r *Router) AddRoute(remotePort int, handler Handler) {
+func (r *Router) AddRoute(remotePort int, handler Handler) *Route {
 	route := Route{
-		RemotePort: remotePort,
-		Handler:    handler,
+		remotePort: remotePort,
+		handler:    handler,
 	}
 	r.Routes[remotePort] = route
+	return &route
+}
+
+func (r *Router) GetRoute(remotePort int) *Route {
+	if v, ok := r.Routes[remotePort]; ok {
+		return &v
+	}
+	return nil
 }

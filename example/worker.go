@@ -21,7 +21,7 @@ func main() {
 
 	worker.AddRoute(19000, worker2.Handler{
 		HandleFunc: handlePort19000,
-		SplitFunc:  nil,
+		UnpackFunc: nil,
 	})
 
 	go worker.Start(ctx)

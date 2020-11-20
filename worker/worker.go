@@ -2,11 +2,11 @@ package worker
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/binary"
 	"github.com/eden-framework/context"
 	"github.com/profzone/envconfig"
+	"github.com/robotic-framework/reverse-proxy/codec"
 	"github.com/robotic-framework/reverse-proxy/common"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"sync/atomic"
@@ -50,6 +50,9 @@ func (w *Worker) Start(ctx *context.WaitStopContext) {
 		panic(err)
 	}
 
+	logrus.Infof("worker connected with master: %s", w.RemoteAddr)
+	defer logrus.Info("worker stopped")
+
 	go w.handleMasterConn(ctx, conn)
 
 	writer := bufio.NewWriter(conn)
@@ -72,21 +75,19 @@ func (w *Worker) writePacket(writer io.Writer, p *common.Packet) error {
 		p.Sequence = w.sequence
 	}
 	packetBytes, err := p.MarshalBinary()
+	packetBytes, err = codec.InternalPack(packetBytes)
 	if err != nil {
 		return err
 	}
-	packetLengthBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(packetLengthBytes, uint32(len(packetBytes)))
 
-	buf := bytes.NewBuffer([]byte{})
-	buf.WriteString(common.PacketBytesPrefix)
-	buf.Write(packetLengthBytes)
-	buf.Write(packetBytes)
-
-	_, err = writer.Write(buf.Bytes())
+	_, err = writer.Write(packetBytes)
 	return err
 }
 
-func (w *Worker) AddRoute(remotePort int, handler Handler) {
-	w.r.AddRoute(remotePort, handler)
+func (w *Worker) AddRoute(remotePort int, handler Handler) *Route {
+	return w.r.AddRoute(remotePort, handler)
+}
+
+func (w *Worker) GetRoute(remotePort int) *Route {
+	return w.r.GetRoute(remotePort)
 }

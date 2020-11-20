@@ -42,7 +42,7 @@ func (w *Worker) handleMasterRegisterAck(ctx *context.WaitStopContext, p *common
 
 	for port := range r.Routes {
 		if route, ok := w.r.Routes[port]; ok {
-			go route.Start(ctx, conn)
+			go route.start(ctx, conn)
 		}
 	}
 }

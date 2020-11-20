@@ -3,6 +3,7 @@ package worker
 import (
 	"bufio"
 	"github.com/eden-framework/context"
+	"github.com/robotic-framework/reverse-proxy/codec"
 	"github.com/robotic-framework/reverse-proxy/common"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -10,7 +11,7 @@ import (
 
 func (w *Worker) handleMasterConn(ctx *context.WaitStopContext, conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
-	scanner.Split(common.PacketSplitFunc)
+	scanner.Split(codec.InternalUnpack)
 
 Run:
 	for {

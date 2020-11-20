@@ -1,11 +1,10 @@
 package master
 
 import (
-	"bytes"
 	context2 "context"
-	"encoding/binary"
 	"fmt"
 	"github.com/eden-framework/context"
+	"github.com/robotic-framework/reverse-proxy/codec"
 	"github.com/robotic-framework/reverse-proxy/common"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -78,18 +77,12 @@ func (m *Master) writePacket(writer io.Writer, p *common.Packet) error {
 		p.Sequence = m.sequence
 	}
 	packetBytes, err := p.MarshalBinary()
+	packetBytes, err = codec.InternalPack(packetBytes)
 	if err != nil {
 		return err
 	}
-	packetLengthBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(packetLengthBytes, uint32(len(packetBytes)))
 
-	buf := bytes.NewBuffer([]byte{})
-	buf.WriteString(common.PacketBytesPrefix)
-	buf.Write(packetLengthBytes)
-	buf.Write(packetBytes)
-
-	_, err = writer.Write(buf.Bytes())
+	_, err = writer.Write(packetBytes)
 	return err
 }
 

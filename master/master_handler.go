@@ -3,6 +3,7 @@ package master
 import (
 	"bufio"
 	"github.com/eden-framework/context"
+	"github.com/robotic-framework/reverse-proxy/codec"
 	"github.com/robotic-framework/reverse-proxy/common"
 	"github.com/sirupsen/logrus"
 	"net"
@@ -13,7 +14,7 @@ func (m *Master) handleWorkerConnection(ctx *context.WaitStopContext, conn net.C
 	defer logrus.Infof("worker %s disconnected", conn.RemoteAddr())
 
 	scanner := bufio.NewScanner(conn)
-	scanner.Split(common.PacketSplitFunc)
+	scanner.Split(codec.InternalUnpack)
 
 	for {
 		if scanner.Scan() {
