@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/eden-framework/context"
-	master2 "github.com/robotic-framework/reverse-proxy/master"
+	master2 "github.com/eden-framework/reverse-proxy/master"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"

@@ -2,7 +2,7 @@ package worker
 
 import (
 	"bufio"
-	"github.com/robotic-framework/reverse-proxy/common"
+	"github.com/eden-framework/reverse-proxy/common"
 	"github.com/sirupsen/logrus"
 	"time"
 )

@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"github.com/robotic-framework/reverse-proxy/codec"
+	"github.com/eden-framework/reverse-proxy/codec"
 )
 
 type HandleFunc func(payload []byte) (response []byte, err error)

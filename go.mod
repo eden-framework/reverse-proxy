@@ -1,4 +1,4 @@
-module github.com/robotic-framework/reverse-proxy
+module github.com/eden-framework/reverse-proxy
 
 go 1.14
 

@@ -3,9 +3,9 @@ package worker
 import (
 	"bufio"
 	"github.com/eden-framework/context"
+	"github.com/eden-framework/reverse-proxy/codec"
+	"github.com/eden-framework/reverse-proxy/common"
 	"github.com/profzone/envconfig"
-	"github.com/robotic-framework/reverse-proxy/codec"
-	"github.com/robotic-framework/reverse-proxy/common"
 	"github.com/sirupsen/logrus"
 	"io"
 	"net"

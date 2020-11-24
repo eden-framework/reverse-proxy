@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/eden-framework/context"
-	worker2 "github.com/robotic-framework/reverse-proxy/worker"
+	worker2 "github.com/eden-framework/reverse-proxy/worker"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
